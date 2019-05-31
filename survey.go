@@ -19,6 +19,9 @@ var DefaultAskOptions = AskOptions{
 		Out: os.Stdout,
 		Err: os.Stderr,
 	},
+	PromptConfig: PromptConfig{
+		PageSize: 7,
+	},
 }
 
 // Validator is a function passed to a Question after a user has provided a response.
@@ -41,10 +44,15 @@ type Question struct {
 	Transform Transformer
 }
 
+// PromptConfig holds the global configuration for a prompt
+type PromptConfig struct {
+	PageSize int
+}
+
 // Prompt is the primary interface for the objects that can take user input
 // and return a response.
 type Prompt interface {
-	Prompt() (interface{}, error)
+	Prompt(config *PromptConfig) (interface{}, error)
 	Cleanup(interface{}) error
 	Error(error) error
 }
@@ -59,7 +67,8 @@ type AskOpt func(options *AskOptions) error
 
 // AskOptions provides additional options on ask.
 type AskOptions struct {
-	Stdio terminal.Stdio
+	Stdio        terminal.Stdio
+	PromptConfig PromptConfig
 }
 
 // WithStdio specifies the standard input, output and error files survey
@@ -75,6 +84,17 @@ func WithStdio(in terminal.FileReader, out terminal.FileWriter, err io.Writer) A
 
 type wantsStdio interface {
 	WithStdio(terminal.Stdio)
+}
+
+// WithPageSize sets the default page size used by prompts
+func WithPageSize(pageSize int) AskOpt {
+	return func(options *AskOptions) error {
+		// set the page size
+		options.PromptConfig.PageSize = pageSize
+
+		// nothing went wrong
+		return nil
+	}
 }
 
 /*
@@ -145,7 +165,7 @@ func Ask(qs []*Question, response interface{}, opts ...AskOpt) error {
 		}
 
 		// grab the user input and save it
-		ans, err := q.Prompt.Prompt()
+		ans, err := q.Prompt.Prompt(&options.PromptConfig)
 		// if there was a problem
 		if err != nil {
 			return err
@@ -165,7 +185,7 @@ func Ask(qs []*Question, response interface{}, opts ...AskOpt) error {
 				if promptAgainer, ok := q.Prompt.(PromptAgainer); ok {
 					ans, err = promptAgainer.PromptAgain(ans, invalid)
 				} else {
-					ans, err = q.Prompt.Prompt()
+					ans, err = q.Prompt.Prompt(&options.PromptConfig)
 				}
 				// if there was a problem
 				if err != nil {
