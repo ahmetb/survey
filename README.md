@@ -279,12 +279,11 @@ All of the prompts have a `Help` field which can be defined to provide more info
 ### Changing the input rune
 
 In some situations, `?` is a perfectly valid response. To handle this, you can change the rune that survey
-looks for by setting the `HelpInputRune` variable in `survey/core`:
+looks for by passing an `AskOpt` to `Ask` or `AskOne`:
 
 ```golang
 import (
     "github.com/AlecAivazis/survey/v2"
-    surveyCore "github.com/AlecAivazis/survey/v2/core"
 )
 
 number := ""
@@ -293,9 +292,7 @@ prompt := &survey.Input{
     Help:    "I couldn't come up with one.",
 }
 
-surveyCore.HelpInputRune = '^'
-
-survey.AskOne(prompt, &number, nil)
+survey.AskOne(prompt, &number, survey.WithHelpInputRune('^'))
 ```
 
 ## Custom Types
